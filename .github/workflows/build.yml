@@ -12,8 +12,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Lint
-    - run: cargo fmt -- --write-mode=diff
-    - run: cargo clippy -- #-D warnings
+      run: cargo fmt -- --write-mode=diff
+    - name: Compile
+      run: cargo clippy -- #-D warnings
 
   build:
     needs: test
@@ -21,9 +22,10 @@ jobs:
     container: majorz/rust-$CIRCLE_JOB:rust-1.23.0
     steps:
     - uses: actions/checkout@v3
-    - name: Build
-    - run: cargo build --release --target=rpi
-    - run: cross-strip target/rpi/release/$BINARY
+    - name: Compile
+      run: cargo build --release --target=rpi
+    - name: cross build
+      run: cross-strip target/rpi/release/$BINARY
     - name: Archive dist
       uses: actions/upload-artifact@v3
       with:

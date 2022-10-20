@@ -13,6 +13,7 @@ jobs:
       volumes:
         - /home/runner/work/wifi-connect/wifi-connect:/work
     steps:
+    - run: cargo -V
     - uses: actions/checkout@v3
     - run: cd /work && ls -l
     - run: cargo fmt -- --write-mode=diff

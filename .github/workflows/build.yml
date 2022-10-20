@@ -13,8 +13,6 @@ jobs:
       env:
         TARGET: arm-unknown-linux-gnueabihf
         TARGET_OS: linux
-      volumes:
-        - .:/work
     steps:
     - uses: actions/checkout@v3
     - run: pwd && ls -l

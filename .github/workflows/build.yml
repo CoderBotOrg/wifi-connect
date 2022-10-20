@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     container: majorz/rust-test-deploy:rust-nightly-2018-01-08
     steps:
+    - run: cargo -V
     - uses: actions/checkout@v3
     - run: cargo -V
     - run: cargo fmt -- --write-mode=diff

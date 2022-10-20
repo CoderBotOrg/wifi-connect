@@ -10,6 +10,11 @@ use network_manager::{AccessPoint, AccessPointCredentials, Connection, Connectio
                       Connectivity, Device, DeviceState, DeviceType, NetworkManager, Security,
                       ServiceState};
 
+use nix::sys::socket::SockAddr;
+use nix::sys::socket::InetAddr;
+use nix::sys::socket::sockaddr_in;
+use nix::ifaddrs::getifaddrs;
+
 use errors::*;
 use exit::{exit, trap_exit_signals, ExitResult};
 use config::Config;
@@ -25,6 +30,10 @@ pub enum NetworkCommand {
         identity: String,
         passphrase: String,
     },
+    Disconnect {
+        ssid: String,
+    },
+    Scan,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -60,9 +69,15 @@ impl NetworkCommandHandler {
 
         let device = find_device(&manager, &config.interface)?;
 
-        let access_points = get_access_points(&device)?;
+        let device_if_addr = get_ifaddr(&*config.wifi_device);
 
-        let portal_connection = Some(create_portal(&device, config)?);
+        let mut access_points = Vec::new();
+        let mut portal_connection = None;
+
+        if device_if_addr.is_none() {
+            access_points = get_access_points(&device)?;
+            portal_connection = Some(create_portal(&device, config)?);
+        }
 
         let dnsmasq = start_dnsmasq(config, &device)?;
 
@@ -94,7 +109,7 @@ impl NetworkCommandHandler {
         server_rx: Receiver<NetworkCommandResponse>,
         network_tx: Sender<NetworkCommand>,
     ) {
-        let gateway = config.gateway;
+        let gateway = Ipv4Addr::new(0, 0, 0, 0);
         let listening_port = config.listening_port;
         let exit_tx_server = exit_tx.clone();
         let ui_directory = config.ui_directory.clone();
@@ -174,8 +189,16 @@ impl NetworkCommandHandler {
                     passphrase,
                 } => {
                     if self.connect(&ssid, &identity, &passphrase)? {
-                        return Ok(());
+                        //return Ok(());
                     }
+                },
+                NetworkCommand::Disconnect { ssid } => {
+                    if self.disconnect(&ssid)? {
+                        //return Ok(());
+                    }
+                },
+                NetworkCommand::Scan => {
+                    self.scan()?;
                 },
             }
         }
@@ -218,7 +241,6 @@ impl NetworkCommandHandler {
         if let Some(ref connection) = self.portal_connection {
             stop_portal(connection, &self.config)?;
         }
-
         self.portal_connection = None;
 
         self.access_points = get_access_points(&self.device)?;
@@ -260,7 +282,33 @@ impl NetworkCommandHandler {
                     warn!("Error connecting to access point '{}': {}", ssid, e);
                 },
             }
+        } else {
+            warn!("Access point not found: '{}'", ssid);
         }
+        self.access_points = get_access_points(&self.device)?;
+
+        self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+
+        Ok(false)
+    }
+
+    fn disconnect(&mut self, ssid: &str) -> Result<bool> {
+        delete_existing_connections_to_same_network(&self.manager, ssid);
+
+        thread::sleep(Duration::from_secs(1));
+
+        self.access_points = get_access_points(&self.device)?;
+
+        self.portal_connection = Some(create_portal(&self.device, &self.config)?);
+
+        Ok(false)
+    }
+
+    fn scan(&mut self) -> Result<bool> {
+        if let Some(ref connection) = self.portal_connection {
+            stop_portal(connection, &self.config)?;
+        }
+        self.portal_connection = None;
 
         self.access_points = get_access_points(&self.device)?;
 
@@ -309,8 +357,10 @@ pub fn process_network_commands(config: &Config, exit_tx: &Sender<ExitResult>) {
 
 pub fn init_networking(config: &Config) -> Result<()> {
     start_network_manager_service()?;
+    let _ = config; // unused config
 
-    delete_exising_wifi_connect_ap_profile(&config.ssid).chain_err(|| ErrorKind::DeleteAccessPoint)
+    //delete_exising_wifi_connect_ap_profile(&config.ssid).chain_err(|| ErrorKind::DeleteAccessPoint)
+    Ok(())
 }
 
 pub fn find_device(manager: &NetworkManager, interface: &Option<String>) -> Result<Device> {
@@ -352,6 +402,30 @@ fn find_wifi_managed_device(devices: Vec<Device>) -> Result<Option<Device>> {
     }
 
     Ok(None)
+}
+
+fn get_ifaddr(ifa_name: &str) -> Option<sockaddr_in> {
+    let addrs = getifaddrs().unwrap();
+    for ifaddr in addrs {
+        match ifaddr.address {
+            Some(SockAddr::Inet(InetAddr::V4(sockaddr_in))) => {
+                if ifaddr.interface_name == ifa_name {
+                    println!("address {}", sockaddr_in.sin_addr.s_addr);
+                    return Some(sockaddr_in);
+                }
+            },
+            _ => {
+                println!("unbound to IP");
+            },
+            None => {
+                println!(
+                    "interface {} with unsupported address family",
+                    ifaddr.interface_name
+                );
+            },
+        }
+    }
+    None
 }
 
 fn get_access_points(device: &Device) -> Result<Vec<AccessPoint>> {

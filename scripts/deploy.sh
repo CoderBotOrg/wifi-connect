@@ -32,6 +32,8 @@ main() {
     
     _builds=$(ensure circle "$CIRCLE_FULL_ENDPOINT")
     _filter='.[] | select(.vcs_tag == "'$CIRCLE_TAG'" and .vcs_revision == "'$CIRCLE_SHA1'" and .workflows.job_name != "deploy") | .build_num'
+    echo $_builds
+    echo $_filter
     _build_nums=$(ensure jq "$_filter" <<< "$_builds")
 
     if [ -z "$_build_nums" ]; then

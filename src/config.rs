@@ -12,6 +12,7 @@ const DEFAULT_SSID: &str = "WiFi Connect";
 const DEFAULT_ACTIVITY_TIMEOUT: &str = "0";
 const DEFAULT_UI_DIRECTORY: &str = "ui";
 const DEFAULT_LISTENING_PORT: &str = "80";
+const DEFAULT_WIFI_DEVICE: &str = "wlan0";
 
 #[derive(Clone)]
 pub struct Config {
@@ -23,6 +24,7 @@ pub struct Config {
     pub listening_port: u16,
     pub activity_timeout: u64,
     pub ui_directory: PathBuf,
+    pub wifi_device: String,
 }
 
 pub fn get_config() -> Config {
@@ -109,6 +111,17 @@ pub fn get_config() -> Config {
                 ))
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("wifi-device")
+                .short("w")
+                .long("wifi-device")
+                .value_name("wifi_device")
+                .help(&format!(
+                    "Wifi Device name (default: {})",
+                    DEFAULT_WIFI_DEVICE
+                ))
+                .takes_value(true),
+        )
         .get_matches();
 
     let interface: Option<String> = matches.value_of("portal-interface").map_or_else(
@@ -153,6 +166,11 @@ pub fn get_config() -> Config {
         String::from,
     )).expect("Cannot parse activity timeout");
 
+    let wifi_device: String = matches.value_of("wifi-device").map_or_else(
+        || env::var("WIFI_DEVICE").unwrap_or_else(|_| DEFAULT_WIFI_DEVICE.to_string()),
+        String::from,
+    );
+
     let ui_directory = get_ui_directory(matches.value_of("ui-directory"));
 
     Config {
@@ -164,6 +182,7 @@ pub fn get_config() -> Config {
         listening_port: listening_port,
         activity_timeout: activity_timeout,
         ui_directory: ui_directory,
+        wifi_device: wifi_device,
     }
 }
 

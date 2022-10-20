@@ -141,16 +141,13 @@ pub fn start_server(
     };
 
     let mut router = Router::new();
-    router.get("/", Static::new(ui_directory), "index");
     router.get("/networks", networks, "networks");
     router.post("/connect", connect, "connect");
+    router.post("/disconnect", disconnect, "disconnect");
+    router.post("/scan", scan, "scan");
 
     let mut assets = Mount::new();
     assets.mount("/", router);
-    assets.mount("/static", Static::new(&ui_directory.join("static")));
-    assets.mount("/css", Static::new(&ui_directory.join("css")));
-    assets.mount("/img", Static::new(&ui_directory.join("img")));
-    assets.mount("/js", Static::new(&ui_directory.join("js")));
 
     let cors_middleware = CorsMiddleware::with_allow_any();
 
@@ -213,6 +210,40 @@ fn connect(req: &mut Request) -> IronResult<Response> {
         identity: identity,
         passphrase: passphrase,
     };
+
+    if let Err(e) = request_state.network_tx.send(command) {
+        exit_with_error(&request_state, e, ErrorKind::SendNetworkCommandConnect)
+    } else {
+        Ok(Response::with(status::Ok))
+    }
+}
+
+fn disconnect(req: &mut Request) -> IronResult<Response> {
+    let ssid = {
+        let params = get_request_ref!(req, Params, "Getting request params failed");
+        let ssid = get_param!(params, "ssid", String);
+        ssid
+    };
+
+    info!("Incoming `disconnect` to access point `{}` request", ssid);
+
+    let request_state = get_request_state!(req);
+
+    let command = NetworkCommand::Disconnect { ssid: ssid };
+
+    if let Err(e) = request_state.network_tx.send(command) {
+        exit_with_error(&request_state, e, ErrorKind::SendNetworkCommandConnect)
+    } else {
+        Ok(Response::with(status::Ok))
+    }
+}
+
+fn scan(req: &mut Request) -> IronResult<Response> {
+    info!("Scan for networks");
+
+    let request_state = get_request_state!(req);
+
+    let command = NetworkCommand::Scan;
 
     if let Err(e) = request_state.network_tx.send(command) {
         exit_with_error(&request_state, e, ErrorKind::SendNetworkCommandConnect)

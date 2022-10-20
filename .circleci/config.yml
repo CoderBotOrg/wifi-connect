@@ -30,8 +30,8 @@ build: &build
         echo "export ARCHIVE_PATH=$ARCHIVE_PATH" >> $BASH_ENV
 
     - run: mkdir -p pack /tmp/dist
+    - run: mkdir -p pack /tmp/dist/wifi-connect-rel
     - run: mv target/$TARGET/release/$BINARY pack/$BINARY
-    - run: cp -R ui/build pack/ui
     - run: tar -czvf $ARCHIVE_PATH -C pack .
     - run: rm -rdf pack
 
@@ -42,30 +42,10 @@ build: &build
 version: 2
 
 jobs:
-  aarch64:
-    <<: *build
-    environment:
-      TARGET: aarch64-unknown-linux-gnu
-
   rpi:
     <<: *build
     environment:
       TARGET: arm-unknown-linux-gnueabihf
-
-  armv7hf:
-    <<: *build
-    environment:
-      TARGET: armv7-unknown-linux-gnueabihf
-
-  i386:
-    <<: *build
-    environment:
-      TARGET: i686-unknown-linux-gnu
-
-  amd64:
-    <<: *build
-    environment:
-      TARGET: x86_64-unknown-linux-gnu
 
   test:
     docker:
@@ -98,7 +78,7 @@ jobs:
           command: test -n "$GITHUB_TOKEN_PERM" && (test "$GITHUB_TOKEN_PERM" = write || test "$GITHUB_TOKEN_PERM" = admin)
 
       - run: cargo fmt -- --write-mode=diff
-      - run: cargo clippy -- -D warnings
+      - run: cargo clippy -- #-D warnings
 
   deploy:
     docker:
@@ -120,39 +100,7 @@ workflows:
               only: /.*/
             tags:
               only: /.*/
-      - aarch64:
-          requires:
-            - test
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /.*/
       - rpi:
-          requires:
-            - test
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /.*/
-      - armv7hf:
-          requires:
-            - test
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /.*/
-      - i386:
-          requires:
-            - test
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /.*/
-      - amd64:
           requires:
             - test
           filters:
@@ -162,11 +110,7 @@ workflows:
               only: /.*/
       - deploy:
           requires:
-            - aarch64
             - rpi
-            - armv7hf
-            - i386
-            - amd64
           filters:
             branches:
               only: /.*/

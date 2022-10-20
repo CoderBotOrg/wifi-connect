@@ -15,9 +15,7 @@ jobs:
         TARGET_OS: linux
     steps:
     - uses: actions/checkout@v3
-    - run: pwd && ls -l
-    - run: rustup toolchain list
-    - run: cd /work && rustup toolchain list
+    - run: rustup install $TARGET
     - run: cargo fmt -- --write-mode=diff
     - run: cargo clippy -- #-D warnings
 
@@ -31,6 +29,7 @@ jobs:
         TARGET_OS: linux
     steps:
     - uses: actions/checkout@v3
+    - run: rustup install $TARGET
     - name: Compile
       run: cargo build --release --target=rpi
     - name: cross build

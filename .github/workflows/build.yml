@@ -11,7 +11,7 @@ jobs:
     container:
       image: majorz/rust-test-deploy:rust-nightly-2018-01-08
       volumes:
-        - /home/runner/work:/work
+        - /home/runner/work/wifi-connect:/work
     steps:
     - uses: actions/checkout@v3
     - run: cd /work && ls -l

@@ -14,6 +14,7 @@ jobs:
         - /home/runner/work:/work
     steps:
     - uses: actions/checkout@v3
+    - run: cd /work && ls -l
     - run: cargo fmt -- --write-mode=diff
     - run: cargo clippy -- #-D warnings
 

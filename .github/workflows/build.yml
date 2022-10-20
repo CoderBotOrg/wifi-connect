@@ -15,6 +15,7 @@ jobs:
         TARGET_OS: linux
     steps:
     - uses: actions/checkout@v3
+    - run: rustup toolchain list
     - run: cargo fmt -- --write-mode=diff
     - run: cargo clippy -- #-D warnings
 

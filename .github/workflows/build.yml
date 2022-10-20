@@ -5,25 +5,22 @@ name: build wifi-connect
 
 on: push
 
-env:
-  TARGET: arm-unknown-linux-gnueabihf
-  TARGET_OS: linux
-
 jobs:
   test:
     runs-on: ubuntu-latest
     container: majorz/rust-test-deploy:rust-nightly-2018-01-08
     steps:
     - uses: actions/checkout@v3
-    - name: Lint
-      run: cargo fmt -- --write-mode=diff
-    - name: Compile
-      run: cargo clippy -- #-D warnings
+    - run: cargo fmt -- --write-mode=diff
+    - run: cargo clippy -- #-D warnings
 
   build:
     needs: test
     runs-on: ubuntu-latest
     container: majorz/rust-rpi:rust-1.23.0
+    env:
+      TARGET: arm-unknown-linux-gnueabihf
+      TARGET_OS: linux
     steps:
     - uses: actions/checkout@v3
     - name: Compile

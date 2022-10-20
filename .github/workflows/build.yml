@@ -19,13 +19,13 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    container: majorz/rust-$CIRCLE_JOB:rust-1.23.0
+    container: majorz/rust-rpi:rust-1.23.0
     steps:
     - uses: actions/checkout@v3
     - name: Compile
       run: cargo build --release --target=rpi
     - name: cross build
-      run: cross-strip target/rpi/release/$BINARY
+      run: cross-strip target/rpi/release/wifi-connect
     - name: Archive dist
       uses: actions/upload-artifact@v3
       with:

@@ -8,7 +8,11 @@ on: push
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: majorz/rust-test-deploy:rust-nightly-2018-01-08
+    container: 
+      image: majorz/rust-test-deploy:rust-nightly-2018-01-08
+      env:
+        TARGET: arm-unknown-linux-gnueabihf
+        TARGET_OS: linux
     steps:
     - uses: actions/checkout@v3
     - run: cargo fmt -- --write-mode=diff
@@ -17,10 +21,11 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
-    container: majorz/rust-rpi:rust-1.23.0
-    env:
-      TARGET: arm-unknown-linux-gnueabihf
-      TARGET_OS: linux
+    container: 
+      image: majorz/rust-rpi:rust-1.23.0
+      env:
+        TARGET: arm-unknown-linux-gnueabihf
+        TARGET_OS: linux
     steps:
     - uses: actions/checkout@v3
     - name: Compile

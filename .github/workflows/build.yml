@@ -16,7 +16,7 @@ jobs:
     - run: cargo clippy -- #-D warnings
 
   build:
-    need: test
+    needs: test
     runs-on: ubuntu-latest
     container: majorz/rust-$CIRCLE_JOB:rust-1.23.0
     steps:
